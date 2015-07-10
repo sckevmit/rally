@@ -105,3 +105,71 @@ class VMTasks(nova_utils.NovaScenario, vm_utils.VMScenario,
                                          force_delete=force_delete)
 
         return {"data": data, "errors": err}
+
+    @types.set(image=types.ImageResourceType,
+               flavor=types.FlavorResourceType)
+    @validation.image_valid_on_flavor("flavor", "image")
+    @validation.file_exists("script")
+    @validation.number("port", minval=1, maxval=65535, nullable=True,
+                       integer_only=True)
+    @validation.external_network_exists("floating_network")
+    @validation.required_services(consts.Service.NOVA)
+    @validation.required_openstack(users=True)
+    @base.scenario(context={"cleanup": ["nova"],
+                            "keypair": {}, "allow_ssh": {}})
+    def boot_runcommand_delete_without_cinder(self, image, flavor,
+                                              script, interpreter, username,
+                                              password=None,
+                                              floating_network=None,
+                                              port=22,
+                                              use_floating_ip=True,
+                                              force_delete=False,
+                                              **kwargs):
+        """Boot a server, run a script that outputs JSON, delete the server.
+
+        Example Script in samples/tasks/support/instance_dd_test.sh
+
+        :param image: glance image name to use for the vm
+        :param flavor: VM flavor name
+        :param script: script to run on server, must output JSON mapping
+                       metric names to values (see the sample script below)
+        :param interpreter: server's interpreter to run the script
+        :param username: ssh username on server, str
+        :param password: Password on SSH authentication
+        :param floating_network: external network name, for floating ip
+        :param port: ssh port for SSH connection
+        :param use_floating_ip: bool, floating or fixed IP for SSH connection
+        :param force_delete: whether to use force_delete for servers
+        :param **kwargs: extra arguments for booting the server
+        :returns: dictionary with keys `data' and `errors':
+                  data: dict, JSON output from the script
+                  errors: str, raw data from the script's stderr stream
+        """
+
+        server, fip = self._boot_server_with_fip(
+            image, flavor, use_floating_ip=use_floating_ip,
+            floating_network=floating_network,
+            key_name=self.context["user"]["keypair"]["name"],
+            **kwargs)
+        try:
+            code, out, err = self._run_command(
+                fip["ip"], port, username, password,
+                command={"script_file": script, "interpreter": interpreter})
+            if code:
+                raise exceptions.ScriptError(
+                    "Error running script %(script)s. "
+                    "Error %(code)s: %(error)s" % {
+                        "script": script, "code": code, "error": err})
+
+            try:
+                data = json.loads(out)
+            except ValueError as e:
+                raise exceptions.ScriptError(
+                    "Script %(script)s has not output valid JSON: %(error)s. "
+                    "Output: %(output)s" % {
+                        "script": script, "error": str(e), "output": out})
+        finally:
+            self._delete_server_with_fip(server, fip,
+                                         force_delete=force_delete)
+
+        return {"data": data, "errors": err}
