@@ -22,6 +22,7 @@ import six
 from rally.common.i18n import _
 from rally.common import log as logging
 from rally.common import sshutils
+from rally.plugins.openstack import scenario
 from rally.plugins.openstack.wrappers import network as network_wrapper
 from rally.task.scenarios import base
 from rally.task import utils
@@ -33,11 +34,13 @@ ICMP_UP_STATUS = "ICMP UP"
 ICMP_DOWN_STATUS = "ICMP DOWN"
 
 
-class VMScenario(base.Scenario):
+class VMScenario(scenario.OpenStackScenario):
     """Base class for VM scenarios with basic atomic actions.
 
     VM scenarios are scenarios executed inside some launched VM instance.
     """
+
+    USER_RWX_OTHERS_RX_ACCESS_MODE = 0o755
 
     @base.atomic_action_timer("vm.run_command_over_ssh")
     def _run_command_over_ssh(self, ssh, command):
@@ -47,7 +50,8 @@ class VMScenario(base.Scenario):
 
         :param ssh: A SSHClient instance.
         :param command: Dictionary specifying command to execute.
-            See `validation.valid_command' docstring for details.
+            See `rally info find VMTasks.boot_runcommand_delete' parameter
+            `command' docstring for explanation.
 
         :returns: tuple (exit_status, stdout, stderr)
         """
@@ -65,6 +69,19 @@ class VMScenario(base.Scenario):
         elif command.get("remote_path"):
             cmd = command["remote_path"]
             stdin = None
+
+        if command.get("local_path"):
+            remote_path = cmd[-1] if isinstance(cmd, (tuple, list)) else cmd
+            ssh.put_file(command["local_path"], remote_path,
+                         mode=self.USER_RWX_OTHERS_RX_ACCESS_MODE)
+
+        if command.get("command_args"):
+            if not isinstance(cmd, (list, tuple)):
+                cmd = [cmd]
+            # NOTE(pboldin): `ssh.execute' accepts either a string interpreted
+            # as a command name or the list of strings that are converted into
+            # single-line command with arguments.
+            cmd = cmd + list(command["command_args"])
 
         return ssh.execute(cmd, stdin=stdin)
 
@@ -150,7 +167,8 @@ class VMScenario(base.Scenario):
         :param username: str. ssh username for server
         :param password: Password for SSH authentication
         :param command: Dictionary specifying command to execute.
-                See `valiation.valid_command' docstring for explanation.
+            See `rally info find VMTasks.boot_runcommand_delete' parameter
+            `command' docstring for explanation.
         :param pkey: key for SSH authentication
 
         :returns: tuple (exit_status, stdout, stderr)

@@ -64,6 +64,19 @@ class KeystoneScenarioTestCase(test.ScenarioTestCase):
         self._test_atomic_action_timer(scenario.atomic_actions(),
                                        "keystone.create_user")
 
+    def test_update_user_enabled(self):
+        user = mock.Mock()
+        enabled = mock.Mock()
+        scenario = utils.KeystoneScenario()
+
+        scenario._update_user_enabled(user, enabled)
+        self.admin_clients(
+            "keystone").users.update_enabled.assert_called_once_with(user,
+                                                                     enabled)
+
+        self._test_atomic_action_timer(scenario.atomic_actions(),
+                                       "keystone.update_user_enabled")
+
     @mock.patch("rally.common.utils.generate_random_name")
     def test_role_create(self, mock_generate_random_name):
         scenario = utils.KeystoneScenario()
@@ -142,21 +155,21 @@ class KeystoneScenarioTestCase(test.ScenarioTestCase):
                                        "keystone.create_tenant")
 
     def test_service_create(self):
-        name = "abc"
-        service_type = name + "_service_type"
-        description = name + "_description"
+        service_type = "service_type"
+        description = "_description"
 
         scenario = utils.KeystoneScenario()
+        scenario._generate_random_name = mock.Mock()
 
-        result = scenario._service_create(name=name,
-                                          service_type=service_type,
+        result = scenario._service_create(service_type=service_type,
                                           description=description)
 
         self.assertEqual(
             self.admin_clients("keystone").services.create.return_value,
             result)
         self.admin_clients("keystone").services.create.assert_called_once_with(
-            name, service_type, description)
+            scenario._generate_random_name.return_value,
+            service_type, description)
         self._test_atomic_action_timer(scenario.atomic_actions(),
                                        "keystone.create_service")
 

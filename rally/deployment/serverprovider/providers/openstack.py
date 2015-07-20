@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import itertools
 import os
 import time
 
@@ -32,6 +33,17 @@ LOG = logging.getLogger(__name__)
 
 SERVER_TYPE = "server"
 KEYPAIR_TYPE = "keypair"
+
+
+def _get_address(s):
+    if s.accessIPv4:
+        return s.accessIPv4
+    if s.accessIPv6:
+        return s.accessIPv6
+    for a in itertools.chain(s.addresses.get("public", []),
+                             *s.addresses.values()):
+        return a["addr"]
+    raise RuntimeError("No address found for %s" % s)
 
 
 @provider.configure(name="OpenStackProvider")
@@ -69,6 +81,7 @@ class OpenStackProvider(provider.ProviderFactory):
             "password": {"type": "string"},
             "tenant": {"type": "string"},
             "auth_url": {"type": "string"},
+            "region": {"type": "string"},
             "flavor_id": {"type": "string"},
             "image": {
                 "type": "object",
@@ -105,7 +118,8 @@ class OpenStackProvider(provider.ProviderFactory):
     def __init__(self, deployment, config):
         super(OpenStackProvider, self).__init__(deployment, config)
         user_endpoint = objects.Endpoint(config["auth_url"], config["user"],
-                                         config["password"], config["tenant"])
+                                         config["password"], config["tenant"],
+                                         region_name=config.get("region"))
         clients = osclients.Clients(user_endpoint)
         self.nova = clients.nova()
         try:
@@ -204,7 +218,7 @@ class OpenStackProvider(provider.ProviderFactory):
 
         for os_server in os_servers:
             utils.wait_for(os_server, **kwargs)
-        servers = [provider.Server(host=s.addresses.values()[0][0]["addr"],
+        servers = [provider.Server(host=_get_address(s),
                                    user="root",
                                    key=public_key_path)
                    for s in os_servers]

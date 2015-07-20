@@ -27,7 +27,10 @@ class KeystoneBasicTestCase(test.TestCase):
     @staticmethod
     def _get_context():
         return {
-            "user": {"id": "fake_user_id"},
+            "user": {
+                "id": "fake_user_id",
+                "endpoint": mock.MagicMock()
+            },
             "tenant": {"id": "fake_tenant_id"}
         }
 
@@ -54,6 +57,21 @@ class KeystoneBasicTestCase(test.TestCase):
                                                       email="abcd",
                                                       enabled=True)
         scenario._resource_delete.assert_called_once_with(create_result)
+
+    def test_create_user_set_enabled_and_delete(self):
+        scenario = basic.KeystoneBasic()
+        scenario._user_create = mock.Mock()
+        scenario._update_user_enabled = mock.Mock()
+        scenario._resource_delete = mock.Mock()
+
+        scenario.create_user_set_enabled_and_delete(enabled=True,
+                                                    email="abcd")
+        scenario._user_create.assert_called_once_with(email="abcd",
+                                                      enabled=True)
+        scenario._update_user_enabled.assert_called_once_with(
+            scenario._user_create.return_value, False)
+        scenario._resource_delete.assert_called_once_with(
+            scenario._user_create.return_value)
 
     @mock.patch("rally.common.utils.generate_random_name")
     def test_create_tenant(self, mock_generate_random_name):
@@ -194,17 +212,14 @@ class KeystoneBasicTestCase(test.TestCase):
 
     def test_create_and_delete_service(self):
         scenario = basic.KeystoneBasic()
-        name = "Rally_test_service"
-        service_type = "rally_test_type"
+        service_type = "test_service_type"
         description = "test_description"
         fake_service = mock.MagicMock()
         scenario._service_create = mock.MagicMock(return_value=fake_service)
         scenario._delete_service = mock.MagicMock()
-        scenario.create_and_delete_service(name=name,
-                                           service_type=service_type,
+        scenario.create_and_delete_service(service_type=service_type,
                                            description=description)
-        scenario._service_create.assert_called_once_with(name,
-                                                         service_type,
+        scenario._service_create.assert_called_once_with(service_type,
                                                          description)
         scenario._delete_service.assert_called_once_with(fake_service.id)
 
@@ -235,17 +250,14 @@ class KeystoneBasicTestCase(test.TestCase):
 
     def test_create_and_list_services(self):
         scenario = basic.KeystoneBasic()
-        name = "Rally_test_service"
-        service_type = "rally_test_type"
+        service_type = "test_service_type"
         description = "test_description"
         fake_service = mock.MagicMock()
         scenario._service_create = mock.MagicMock(return_value=fake_service)
         scenario._list_services = mock.MagicMock()
-        scenario.create_and_list_services(name=name,
-                                          service_type=service_type,
+        scenario.create_and_list_services(service_type=service_type,
                                           description=description)
-        scenario._service_create.assert_called_once_with(name,
-                                                         service_type,
+        scenario._service_create.assert_called_once_with(service_type,
                                                          description)
         scenario._list_services.assert_called_once_with()
 

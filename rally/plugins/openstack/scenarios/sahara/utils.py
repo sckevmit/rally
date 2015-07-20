@@ -23,6 +23,7 @@ from rally.common.i18n import _
 from rally.common import log as logging
 from rally import consts
 from rally import exceptions
+from rally.plugins.openstack import scenario
 from rally.plugins.openstack.scenarios.sahara import consts as sahara_consts
 from rally.task.scenarios import base
 from rally.task import utils
@@ -47,7 +48,7 @@ benchmark_group = cfg.OptGroup(name="benchmark", title="benchmark options")
 CONF.register_opts(SAHARA_TIMEOUT_OPTS, group=benchmark_group)
 
 
-class SaharaScenario(base.Scenario):
+class SaharaScenario(scenario.OpenStackScenario):
     """Base class for Sahara scenarios with basic atomic actions."""
 
     RESOURCE_NAME_LENGTH = 20
@@ -155,7 +156,7 @@ class SaharaScenario(base.Scenario):
                 return None
 
     def _setup_floating_ip_pool(self, node_groups, floating_ip_pool):
-        if consts.Service.NEUTRON in self._clients.services().values():
+        if consts.Service.NEUTRON in self.clients("services").values():
             LOG.debug("Neutron detected as networking backend.")
             floating_ip_pool_value = self._setup_neutron_floating_ip_pool(
                 floating_ip_pool)
@@ -504,7 +505,7 @@ class SaharaScenario(base.Scenario):
         :return: Network id for Neutron or None for Nova Networking.
         """
 
-        if consts.Service.NEUTRON not in self._clients.services().values():
+        if consts.Service.NEUTRON not in self.clients("services").values():
             return None
 
         # Taking net id from context.

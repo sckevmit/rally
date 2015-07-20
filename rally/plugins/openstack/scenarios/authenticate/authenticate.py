@@ -12,11 +12,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from rally.plugins.openstack import scenario
 from rally.task.scenarios import base
 from rally.task import validation
 
 
-class Authenticate(base.Scenario):
+class Authenticate(scenario.OpenStackScenario):
     """Benchmark scenarios for the authentication mechanism.
 
     Benchmark scenarios for different types of OpenStack clients like Keystone,
@@ -93,7 +94,7 @@ class Authenticate(base.Scenario):
         neutron_client = self.clients("neutron")
         for i in range(repetitions):
             with base.AtomicAction(self, "authenticate.validate_neutron"):
-                neutron_client.get_auth_info()
+                neutron_client.list_networks()
 
     @validation.number("repetitions", minval=1)
     @validation.required_openstack(users=True)
