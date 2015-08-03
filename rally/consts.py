@@ -105,7 +105,6 @@ class _Service(utils.ImmutableMixin, utils.EnumMixin):
     SWIFT = "swift"
     MISTRAL = "mistral"
     MURANO = "murano"
-    IRONIC = "ironic"
 
 
 class _ServiceType(utils.ImmutableMixin, utils.EnumMixin):
@@ -131,7 +130,6 @@ class _ServiceType(utils.ImmutableMixin, utils.EnumMixin):
     OBJECT_STORE = "object-store"
     WORKFLOW_EXECUTION = "workflowv2"
     APPLICATION_CATALOG = "application_catalog"
-    BARE_METAL = "baremetal"
 
     def __init__(self):
         self.__names = {
@@ -154,8 +152,7 @@ class _ServiceType(utils.ImmutableMixin, utils.EnumMixin):
             self.DATA_PROCESSING: _Service.SAHARA,
             self.OBJECT_STORE: _Service.SWIFT,
             self.WORKFLOW_EXECUTION: _Service.MISTRAL,
-            self.APPLICATION_CATALOG: _Service.MURANO,
-            self.BARE_METAL: _Service.IRONIC,
+            self.APPLICATION_CATALOG: _Service.MURANO
         }
 
     def __getitem__(self, service_type):

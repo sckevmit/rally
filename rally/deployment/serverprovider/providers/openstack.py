@@ -82,7 +82,6 @@ class OpenStackProvider(provider.ProviderFactory):
             "tenant": {"type": "string"},
             "auth_url": {"type": "string"},
             "region": {"type": "string"},
-            "config_drive": {"type": "boolean"},
             "flavor_id": {"type": "string"},
             "image": {
                 "type": "object",
@@ -203,12 +202,10 @@ class OpenStackProvider(provider.ProviderFactory):
         os_servers = []
         for i in range(self.config.get("amount", 1)):
             name = "%s-%d" % (self.config["deployment_name"], i)
-            server = self.nova.servers.create(
-                name, image_uuid, flavor,
-                nics=nics,
-                key_name=keypair.name,
-                userdata=userdata,
-                config_drive=self.config.get("config_drive", False))
+            server = self.nova.servers.create(name, image_uuid, flavor,
+                                              nics=nics,
+                                              key_name=keypair.name,
+                                              userdata=userdata)
             os_servers.append(server)
             self.resources.create({"id": server.id}, type=SERVER_TYPE)
 

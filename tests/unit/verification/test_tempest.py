@@ -111,11 +111,7 @@ class TempestUtilsTestCase(BaseTestCase):
         mock_check_output.assert_has_calls([
             mock.call("python ./tools/install_venv.py", shell=True,
                       cwd=self.verifier.path()),
-            mock.call("%s pip install -r requirements.txt "
-                      "-r test-requirements.txt" %
-                      self.verifier.venv_wrapper, shell=True,
-                      cwd=self.verifier.path()),
-            mock.call("%s python setup.py develop -N" %
+            mock.call("%s python setup.py install" %
                       self.verifier.venv_wrapper, shell=True,
                       cwd=self.verifier.path())])
 
